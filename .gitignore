@@ -1,0 +1,5 @@
+# Ignoring all data in /Data/
+Data/**
+
+# Making exception for .md files
+!Data/**/*.md
