@@ -78,23 +78,23 @@ def calculate_forgetful_ben_score(df, history):
     return df
 
 # We split our data into 2 separate sets in the prep_data file
-# print("Loading training data...")
-# train_df = pl.read_parquet(rf".\Data\final_train_data.parquet")
+print("Loading training data...")
+train_df = pl.read_parquet(rf".\Data\final_train_data.parquet")
 print("Loading validation data...")
 val_df = pl.read_parquet(rf".\Data\final_val_data.parquet")
 
-# print("\nCalculating streak for training data...")
-# train_df = calculate_ben_score(train_df)
-print("\nCalculating streak for validation data...")
+print("\nCalculating scores for training data...")
+train_df = calculate_ben_score(train_df)
+print("\nCalculating scores for validation data...")
 val_df = calculate_ben_score(val_df)
 val_df = calculate_forgetful_ben_score(val_df, 5)
 
 print("\nTraining data sample:")
 print(val_df.head())
 
-# print("\nSaving training data...")
-# train_df.write_parquet(rf".\Data\final_train_data2.parquet")
-# train_df.write_csv(rf".\Data\final_train_data2.csv")
+print("\nSaving training data...")
+train_df.write_parquet(rf".\Data\final_train_data2.parquet")
+train_df.write_csv(rf".\Data\final_train_data2.csv")
 print("Saving validation data...")
 val_df.write_parquet(rf".\Data\final_val_data2.parquet")
 val_df.write_csv(rf".\Data\final_val_data2.csv")
