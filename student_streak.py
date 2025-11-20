@@ -49,6 +49,8 @@ def calculate_streak(df):
     return df
 
 
+# UNCOMMENT STUFF AS NEEDED, MY COMPUTER DIDN'T HAVE ENOUGH RAM TO DO BOTH AT THE SAME TIME
+
 # We split our data into 2 separate sets in the prep_data file
 # print("Loading training data...")
 # train_df = pl.read_parquet(rf".\Data\train_data.parquet")
