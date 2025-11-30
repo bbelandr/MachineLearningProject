@@ -111,22 +111,26 @@ Our \texttt{bayes\_rolling\_acc} feature is designed to show the current accurac
 The main purpose of this feature was to profile the students by capturing how well they have been performing so far. This allows the model to tell whether the student is above, below, or plain average without memorizing students, allowing for great generalization on the students in the validation set. We decided to scale \texttt{bayes\_rolling\_acc} with minmax scaling to preserve the small differences in student's performance levels.
 
 \subsection{\texttt{watched\_lecture}}
-TBD
+Our \texttt{watched\_lecture} feature describes whether the student has watched a lecture relevant to the question in this interaction. We calculated this value by checking through each student's interaction log in the \texttt{KT3} folder, which includes each time the student interacted with a specific lecture. We then took this list for each student, used the \texttt{lectures.csv} file to get the tag associated with each lecture. Finally, we run through that student's question interaction log to check if the student has watched a lecture that matches any of the tags before answering the question, then mark this feature with the corresponding value (1 or 0).
 
-\subsection{\texttt{forgetful\_ben\_score}}
-TBD
+Due to the large number of tags (\textasciitilde200), with each lecture covering only a single tag, this feature is very sparse. Due to this, we didn't expect the feature to provide a large accuracy boost. Instead, it may help us predict better on some of the tricky scenarios where a student with a low accuracy answers a difficult question correctly. This feature does not need scaling because it is a boolean.
 
 \subsection{\texttt{student\_streak}}
-TBD
+Our \texttt{student\_streak} feature simply records the current correct/incorrect streak of the students guesses, with no bound on the time captured. It accounts for both positive and negative streaks with the corresponding positive or negative value, meaning that an incorrect answer changes the streak to -1, rather than 0, starting their incorrect streak. We calculated this by running through each student's interactions in chronological order, keeping track of their current streak until it breaks, then starting a new streak. We decided to use standard scaling on this feature because it's main benefit comes from identifying large streaks, whether positive or negative, rather than needing to preserve the difference between differences in small streaks.
+
+\subsection{\texttt{forgetful\_ben\_score}}
+Our \texttt{forgetful\_ben\_score} feature details the accuracy of the model in its last interactions, and is meant to serve as a meaningful short-term feature when streaks are misleading or not useful. We calculated this feature by looking at a rolling window of the 5 most recently answered questions by that student and adding or removing 1 from the total for each question they got right or wrong in that window. We chose this method over simple accuracy tracking so that we avoid have extreme accuracy changes with fewer than 5 previous data points, with this method providing natural smoothing. 
+
+This feature can compliment the downsides of the \texttt{student\_streak} very well, especially if we just ended a streak. For example, if the student got 10 answers correct in a row and just previously missed a question to break the streak, the \texttt{student\_streak} is misleading while the \texttt{forgetful\_ben\_score} will still show a value of 3, which is still very high. In this scenario, we are still able to account for the student's recent streak even though it wasn't recognized by the \texttt{student\_streak} metric. Because there is a small range of possible values for this score, we chose to use minmax scaling to preserve small differences.
 
 \subsection{\texttt{question\_acc}}
 TBD
 
 \subsection{\texttt{correct}}
-The \texttt{correct} value is our target variable. TBD
+The \texttt{correct} value is our target variable, which details whether the student got the question correct or not with a 1 or a 0. Because our dataset did not explicitly provide this, we had to go to each interaction, check the student's answer, then compare it to the correct answer for that question listed in \texttt{questions.csv} and mark whether the student was correct. We obtained this value as part of our initial dataset aggregation in \texttt{prep\_data.ipynb} so that we could use this column to engineer most of our features that rely on checking if the student was correct on previous questions (streak and accuracy measurements).
 
 \vspace{1em}
-Yap about the model here
+Yap about the model(s) here
 
 
 \section{Results and Discussion}
