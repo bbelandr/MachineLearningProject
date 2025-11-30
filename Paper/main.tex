@@ -86,7 +86,7 @@ Introduction goes here
 
 \section{Dataset}
 
-Dataset description goes here
+Dataset description goes here. If you could use specific numbers about how large the dataset is that'd be really cool. Could also mention that most of the data isn't useful to the model at base, so the majority of the project is focused on feature engineering.
 
 
 
@@ -94,19 +94,39 @@ Dataset description goes here
 
 \section{Technical Approach}
 
-Technical approach goes here
+Due to the sparse organization and large nature of our dataset, we decided to create an intermediary dataset that combines only the useful features from the original dataset. This allowed us to drastically cut down on loading times, as the vast majority of time spent on processing and feature engineering would be spent on opening over 1 million individual text files rather than processing the data itself.
 
+To do this, we used the library Polars to open and close the files quickly and modify some of the features on-the-fly, by stripping unneeded prefixes from the \texttt{student\_id}, \texttt{question\_id}, and \texttt{bundle\_id} features, fetching the tags related to each question, and converting the student's answer (A, B, C, or D) into a concrete \texttt{correct} value that details if their answer was right or wrong (1 or 0). 
 
+After that, we performed our split on the data, into our intermediary training and validation sets, allowing us to calculate rolling values and averages based on the training set without leaking data to the validation set. In our midterm report, we had issues with data leakage when splitting. To fix this, we split based on the \texttt{student\_id} to ensure that no student was in both sets. To ensure fair splits, we also grouped the students into 4 bins based off of their activity level, and drew students into the training and validation sets from these bins to ensure that active and inactive students are spread equally between the data splits. Finally, we chose to use an 80/20 split. Due to the large size of our dataset, the size of the training set ended up only affecting the model's training time rather than performance. These two splits make up our intermediary dataset, which we used to engineer our features for the final dataset.
 
-\subsection{Subsections}
+Our final version of the dataset incorporates all of our final features that we pass directly to the model. The following details each feature, how we derived it from our dataset, and how we chose to scale it:
 
-You can make subsections like this
+\subsection{\texttt{elapsed\_time}}
+TBD
 
-\subsection{Another subsection}
+\subsection{\texttt{bayes\_rolling\_acc}}
+Our \texttt{bayes\_rolling\_acc} feature is designed to show the current accuracy of the student up to that point, using Bayesian smoothing to account for early entries. To calculate this, we kept a rolling count of each student's accuracy and updated it after each interaction. To reduce extreme values from appearing early in the student's history we implemented Bayesian smoothing with \texttt{$\alpha$=20}, effectively starting us with 20 questions answered assumed at the average accuracy (.653523) across all students combined.
 
-Isn't that cool
+The main purpose of this feature was to profile the students by capturing how well they have been performing so far. This allows the model to tell whether the student is above, below, or plain average without memorizing students, allowing for great generalization on the students in the validation set. We decided to scale \texttt{bayes\_rolling\_acc} with minmax scaling to preserve the small differences in student's performance levels.
 
+\subsection{\texttt{watched\_lecture}}
+TBD
 
+\subsection{\texttt{forgetful\_ben\_score}}
+TBD
+
+\subsection{\texttt{student\_streak}}
+TBD
+
+\subsection{\texttt{question\_acc}}
+TBD
+
+\subsection{\texttt{correct}}
+The \texttt{correct} value is our target variable. TBD
+
+\vspace{1em}
+Yap about the model here
 
 
 \section{Results and Discussion}
