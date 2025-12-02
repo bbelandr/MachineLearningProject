@@ -16,6 +16,7 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage{graphicx}
 
 % The following packages can be found on http:\\www.ctan.org
 %\usepackage{graphics} % for pdf, bitmapped graphics files
@@ -101,11 +102,24 @@ interpretation of the results.
 
 \section{Dataset}
 
-Dataset description goes here. If you could use specific numbers about how large the dataset is that'd be really cool. Could also mention that most of the data isn't useful to the model at base, so the majority of the project is focused on feature engineering.
 
+The data that we used comprised of the KT1 and question data sets from EdNet. The KT1 dataset provided these features: \texttt{user\_answer}, \texttt{question\_id}, \texttt{bundle\_id}, and \texttt{elapsed\_time}. KT1 has 784,309 individual csv files. Each csv file represents an individual student's question history. Over all of the files, students produced answers to a total of 131,441,538 questions that we will use to train and validate our model with. 
 
+A separate file called \texttt{questions.csv} holds all the correct answers to each question. The \texttt{questions.csv} file provided us the features \texttt{question\_id}, \texttt{bundle\_id}, \texttt{explanation\_id}, tags, and the \texttt{correct\_answer}.
 
+Here are some relevant features that get utilized in our project that likely need explanation:
 
+\begin{itemize}
+    \item \textbf{bundle\_id}: This feature measures the similarity between questions. Questions sharing the same \texttt{bundle\_id} often share a common passage, picture, or listening material. Additionally, \texttt{bundle\_id}'s that are close in numerical value are also likely to indicate similar questions.
+    \item \textbf{tags}: This feature groups similar question concepts. A single question can be associated with multiple tags simultaneously. If two questions share the same tag, they are likely similar in content.
+\end{itemize}
+% \texttt{explanation\_id} is a similar feature to \texttt{bundle\_id} except that instead of measuring the similarity between the questions, it measures the similarity between the answers. Questions with the same \texttt{explanation\_id} have correct answers for similar reasons.
+
+Most of these data are not remotely ready to be used to train a model on. Almost none of the original features that came from this data set were directly used to make our model. For example, the \texttt{user\_answer} feature from KT1 only tells us if the user answers 'A', 'B', 'C', or 'D'. In order to measure the correctness of the user's answer, we have to compare the user's answer with the \texttt{correct\_answer} feature from the \texttt{questions.csv} file. The structure of this data set leaves much work to do to achieve meaningful results. 
+
+\texttt{elapsed\_time} has quite a large variance, and there seems to be a large gap of values missing in \texttt{bundle\_id} and \texttt{question\_id}. This information needs to be normalized in some way to be used effectively.
+
+Additionally, because the dataset is so large and it spans over hundreds of thousands of files, the overhead for simply reading and modifying the data is extremely computationally expensive. In fact, it was especially expensive when using the popular Python library called Pandas to load and modify the data.
 
 \section{Technical Approach}
 
@@ -237,10 +251,16 @@ Technical Approach
 
 \section{Workload Distribution}
 
-Talk about how much we miss John
 
+Benjamin Belandres played a lead role in the project's inception, taking responsibility for the project idea, finding the dataset, normalization and training, and an amount of the feature engineering.
 
+Daniel Moon handled feature extraction, offered assistance with the \texttt{prep\_data.ipynb} notebook, and conducted the essential data visualization and analysis.
 
+Alex Ogle collaborated closely with Will on feature selection and designing the model. Additionally, Alex contributed detail by developing graphs of the data to support the chosen normalization method.
+
+Will Sessoms focused on feature extraction and was responsible for creating the \texttt{prep\_data.ipynb} notebook used for dataset consolidation. Will also worked specifically on developing our preprocessing pipeline.
+
+John Cordwell provided key guidance in the early stages, focusing on feature selection and the crucial preprocessing planning. Unfortunately, John dropped the class halfway through the semester, but his presence is missed and his contributions are felt.
 
 
 
