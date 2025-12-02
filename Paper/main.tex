@@ -78,7 +78,22 @@ Abstract goes here
 
 \section{INTRODUCTION}
 
-Introduction goes here
+Many university students struggle to determine when and how to study most effectively. 
+Our project investigates whether machine learning models can predict whether a student 
+will answer a question correctly based on their past interactions and behavioral patterns. 
+Using the EdNet--KT1 dataset, which contains more than 780{,}000 learner interaction logs 
+and detailed question metadata, we developed a pipeline to evaluate what factors contribute 
+most to predicting student performance.
+
+Our goals were: (1) to design a reproducible end-to-end learning pipeline, 
+(2) to perform feature engineering on temporal and question-level attributes, 
+and (3) to evaluate the effectiveness of a simple, interpretable model (Logistic Regression)
+before exploring more complex learning approaches. 
+
+We reused the overall data preparation steps from our midterm report, including dataset 
+consolidation, cleaning, and the initial baseline models. In this final report, we extend
+the analysis with improved feature engineering, thorough model evaluation, and visualization-based 
+interpretation of the results.
 
 
 
@@ -133,16 +148,79 @@ The \texttt{correct} value is our target variable, which details whether the stu
 Yap about the model(s) here
 
 
-\section{Results and Discussion}
+\section{RESULTS AND DISCUSSION}
 
-Talk about results and discuss here
+\subsection{Feature Engineering Impact}
+
+Across all experiments, feature engineering had more impact on performance than
+model complexity. Normalizing skewed features such as \texttt{elapsed\_time} and
+\texttt{question\_acc} was essential. Raw values produced unstable distributions,
+while normalization reduced variance and improved generalization.
+
+We also found that ID-based features (question ID and bundle ID) introduced noise.
+They encode ordering rather than meaningful structure, and ablation results confirmed
+they contributed little to accuracy.
+
+\subsection{Ablation Study}
+
+To understand which features mattered most, we conducted a full ablation study.
+Key observations:
+
+\begin{itemize}
+    \item Baseline accuracy using only question accuracy was 65.3\%.
+    \item Using only \texttt{question\_acc} raised validation accuracy to 69\%.
+    \item Using only \texttt{elapsed\_time} dropped performance to 58\%.
+    \item Combining \texttt{question\_acc} and \texttt{elapsed\_time} gave 69.5\%.
+    \item Adding ID features slightly \textit{reduced} accuracy.
+    \item The final normalized model achieved 71.26\% validation accuracy.
+\end{itemize}
+
+These results show that student performance is primarily influenced by question
+difficulty (captured by \texttt{question\_acc}) and response behavior (captured
+by elapsed time), while ID fields do not provide useful signal.
+
+\subsection{Learning Curve Analysis}
+
+We also plotted the learning curve for logistic regression. Training and validation
+accuracy stayed tightly grouped (approximately 71.35\% vs.\ 71.32\%), indicating:
+
+\begin{itemize}
+    \item no overfitting,
+    \item the model is capacity-limited, and
+    \item adding more data will not meaningfully improve performance without
+          better features.
+\end{itemize}
+
+This supports the conclusion that improvements must come from feature engineering
+(tag embeddings, sequence-based features) rather than model scaling.
+
+\subsection{Why Splitting by Students Improved Accuracy}
+
+Early experiments used a row-wise random split, which leaked information across
+training and validation because multiple interactions from the same student appeared
+in both sets. Splitting by \emph{students} ensured no student appeared in both sets,
+eliminating leakage and producing more realistic accuracy estimates.
 
 
 
 
-\section{Conclusion}
+\section{CONCLUSIONS}
 
-Talk about our results, shortcomings, visualization, etc...
+This project demonstrates that simple, interpretable models can still provide
+meaningful insight into student learning behaviors. Our experiments show that
+feature engineering is more important than model complexity: normalizing skewed
+features and removing noisy identifiers resulted in significant improvements.
+
+Logistic regression revealed two key insights: (1) question difficulty is the
+strongest predictor of correctness, and (2) elapsed response time captures important
+behavioral patterns. Visualization played a crucial role in exposing skew, guiding
+normalization choices, and validating the decisions made in the ablation study.
+
+Future work will focus on sequence-based models (such as RNNs or Transformers),
+embeddings for question tags, and reinforcement learning approaches for adaptive
+student modeling. These directions may capture deeper temporal patterns that simple
+linear models cannot represent.
+
 
 
 
