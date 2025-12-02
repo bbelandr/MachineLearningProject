@@ -72,26 +72,45 @@ The purpose of the model is to determine whether a person has answered a questio
 
 \end{abstract}
 
-
-
-
-
-
 \section{INTRODUCTION}
 
-Introduction goes here
 
+Many university students struggle to determine when and how to study most effectively. 
+Our project investigates whether machine learning models can predict whether a student 
+will answer a question correctly based on their past interactions and behavioral patterns. 
+Using the EdNet--KT1 dataset, which contains more than 780{,}000 learner interaction logs 
+and detailed question metadata, we developed a pipeline to evaluate what factors contribute 
+most to predicting student performance.
 
+Our goals were: (1) to design a reproducible end-to-end learning pipeline, 
+(2) to perform feature engineering on temporal and question-level attributes, 
+and (3) to evaluate the effectiveness of a simple, interpretable model (Logistic Regression)
+before exploring more complex learning approaches. 
 
-
+We reused the overall data preparation steps from our midterm report, including dataset 
+consolidation, cleaning, and the initial baseline models. In this final report, we extend
+the analysis with improved feature engineering, thorough model evaluation, and visualization-based 
+interpretation of the results.
 
 \section{Dataset}
 
-Dataset description goes here. If you could use specific numbers about how large the dataset is that'd be really cool. Could also mention that most of the data isn't useful to the model at base, so the majority of the project is focused on feature engineering.
+The data that we used comprised of the KT1 and question data sets from EdNet. The KT1 dataset provided these features: \texttt{user\_answer}, \texttt{question\_id}, \texttt{bundle\_id}, and \texttt{elapsed\_time}. KT1 has 784,309 individual csv files. Each csv file represents an individual student's question history. Over all of the files, students produced answers to a total of 131,441,538 questions that we will use to train and validate our model with. 
 
+A separate file called \texttt{questions.csv} holds all the correct answers to each question. The \texttt{questions.csv} file provided us the features \texttt{question\_id}, \texttt{bundle\_id}, \texttt{explanation\_id}, tags, and the \texttt{correct\_answer}.
 
+Here are some relevant features that get utilized in our project that likely need explanation:
 
+\begin{itemize}
+    \item \textbf{bundle\_id}: This feature measures the similarity between questions. Questions sharing the same \texttt{bundle\_id} often share a common passage, picture, or listening material. Additionally, \texttt{bundle\_id}'s that are close in numerical value are also likely to indicate similar questions.
+    \item \textbf{tags}: This feature groups similar question concepts. A single question can be associated with multiple tags simultaneously. If two questions share the same tag, they are likely similar in content.
+\end{itemize}
+% \texttt{explanation\_id} is a similar feature to \texttt{bundle\_id} except that instead of measuring the similarity between the questions, it measures the similarity between the answers. Questions with the same \texttt{explanation\_id} have correct answers for similar reasons.
 
+Most of these data are not remotely ready to be used to train a model on. Almost none of the original features that came from this data set were directly used to make our model. For example, the \texttt{user\_answer} feature from KT1 only tells us if the user answers 'A', 'B', 'C', or 'D'. In order to measure the correctness of the user's answer, we have to compare the user's answer with the \texttt{correct\_answer} feature from the \texttt{questions.csv} file. The structure of this data set leaves much work to do to achieve meaningful results. 
+
+\texttt{elapsed\_time} has quite a large variance, and there seems to be a large gap of values missing in \texttt{bundle\_id} and \texttt{question\_id}. This information needs to be normalized in some way to be used effectively.
+
+Additionally, because the dataset is so large and it spans over hundreds of thousands of files, the overhead for simply reading and modifying the data is extremely computationally expensive. In fact, it was especially expensive when using the popular Python library called Pandas to load and modify the data.
 
 \section{Technical Approach}
 
@@ -176,19 +195,74 @@ To ensure sufficient training data, a logistic regression model was first traine
 
 \section{Results and Discussion}
 
-Talk about results and discuss here
+\subsection{Feature Engineering Impact}
 
+Across all experiments, feature engineering had more impact on performance than
+model complexity. Normalizing skewed features such as \texttt{elapsed\_time} and
+\texttt{question\_acc} was essential. Raw values produced unstable distributions,
+while normalization reduced variance and improved generalization.
 
+We also found that ID-based features (question ID and bundle ID) introduced noise.
+They encode ordering rather than meaningful structure, and ablation results confirmed
+they contributed little to accuracy.
+
+\subsection{Ablation Study}
+
+To understand which features mattered most, we conducted a full ablation study.
+Key observations:
+
+\begin{itemize}
+    \item Baseline accuracy using only question accuracy was 65.3\%.
+    \item Using only \texttt{question\_acc} raised validation accuracy to 69\%.
+    \item Using only \texttt{elapsed\_time} dropped performance to 58\%.
+    \item Combining \texttt{question\_acc} and \texttt{elapsed\_time} gave 69.5\%.
+    \item Adding ID features slightly \textit{reduced} accuracy.
+    \item The final normalized model achieved 71.26\% validation accuracy.
+\end{itemize}
+
+These results show that student performance is primarily influenced by question
+difficulty (captured by \texttt{question\_acc}) and response behavior (captured
+by elapsed time), while ID fields do not provide useful signal.
+
+\subsection{Learning Curve Analysis}
+
+We also plotted the learning curve for logistic regression. Training and validation
+accuracy stayed tightly grouped (approximately 71.35\% vs.\ 71.32\%), indicating:
+
+\begin{itemize}
+    \item no overfitting,
+    \item the model is capacity-limited, and
+    \item adding more data will not meaningfully improve performance without
+          better features.
+\end{itemize}
+
+This supports the conclusion that improvements must come from feature engineering
+(tag embeddings, sequence-based features) rather than model scaling.
+
+\subsection{Why Splitting by Students Improved Accuracy}
+
+Early experiments used a row-wise random split, which leaked information across
+training and validation because multiple interactions from the same student appeared
+in both sets. Splitting by \emph{students} ensured no student appeared in both sets,
+eliminating leakage and producing more realistic accuracy estimates.
 
 
 \section{Conclusion}
 
-Talk about our results, shortcomings, visualization, etc...
+This project demonstrates that simple, interpretable models can still provide
+meaningful insight into student learning behaviors. Our experiments show that
+feature engineering is more important than model complexity: normalizing skewed
+features and removing noisy identifiers resulted in significant improvements.
 
+Logistic regression revealed two key insights: (1) question difficulty is the
+strongest predictor of correctness, and (2) elapsed response time captures important
+behavioral patterns. Visualization played a crucial role in exposing skew, guiding
+normalization choices, and validating the decisions made in the ablation study.
 
-
-
-
+Future work will focus on sequence-based models (such as RNNs or Transformers),
+embeddings for question tags, and reinforcement learning approaches for adaptive
+student modeling. These directions may capture deeper temporal patterns that simple
+linear models cannot represent.
 
 \section{Code and Design}
 
