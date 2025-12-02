@@ -1,3 +1,4 @@
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %2345678901234567890123456789012345678901234567890123456789012345678901234567890
 %        1         2         3         4         5         6         7         8
@@ -16,7 +17,6 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{graphicx}
 
 % The following packages can be found on http:\\www.ctan.org
 %\usepackage{graphics} % for pdf, bitmapped graphics files
@@ -68,7 +68,7 @@ EdNet: Predicting Student Success
 
 \begin{abstract}
 
-Abstract goes here
+The purpose of the model is to determine whether a person has answered a question correctly while taking a test. The model accomplishes this through features based off a students' answer streak and etc. The algorithm implemented is a combination of logistic regression, random forest classifier, and Extreme Gradient Boost (XGBoost) Classifier combined by voting classifier ensemble method. Accuracy would be balanced with computational efficiency by taking in only a certain number of students for training the models. Results found the each model to be approximately 70\% validation with each model with some models having more overfitting than others (range from 2\% to 9\% difference depending on model).
 
 \end{abstract}
 
@@ -79,22 +79,7 @@ Abstract goes here
 
 \section{INTRODUCTION}
 
-Many university students struggle to determine when and how to study most effectively. 
-Our project investigates whether machine learning models can predict whether a student 
-will answer a question correctly based on their past interactions and behavioral patterns. 
-Using the EdNet--KT1 dataset, which contains more than 780{,}000 learner interaction logs 
-and detailed question metadata, we developed a pipeline to evaluate what factors contribute 
-most to predicting student performance.
-
-Our goals were: (1) to design a reproducible end-to-end learning pipeline, 
-(2) to perform feature engineering on temporal and question-level attributes, 
-and (3) to evaluate the effectiveness of a simple, interpretable model (Logistic Regression)
-before exploring more complex learning approaches. 
-
-We reused the overall data preparation steps from our midterm report, including dataset 
-consolidation, cleaning, and the initial baseline models. In this final report, we extend
-the analysis with improved feature engineering, thorough model evaluation, and visualization-based 
-interpretation of the results.
+Introduction goes here
 
 
 
@@ -102,24 +87,11 @@ interpretation of the results.
 
 \section{Dataset}
 
+Dataset description goes here. If you could use specific numbers about how large the dataset is that'd be really cool. Could also mention that most of the data isn't useful to the model at base, so the majority of the project is focused on feature engineering.
 
-The data that we used comprised of the KT1 and question data sets from EdNet. The KT1 dataset provided these features: \texttt{user\_answer}, \texttt{question\_id}, \texttt{bundle\_id}, and \texttt{elapsed\_time}. KT1 has 784,309 individual csv files. Each csv file represents an individual student's question history. Over all of the files, students produced answers to a total of 131,441,538 questions that we will use to train and validate our model with. 
 
-A separate file called \texttt{questions.csv} holds all the correct answers to each question. The \texttt{questions.csv} file provided us the features \texttt{question\_id}, \texttt{bundle\_id}, \texttt{explanation\_id}, tags, and the \texttt{correct\_answer}.
 
-Here are some relevant features that get utilized in our project that likely need explanation:
 
-\begin{itemize}
-    \item \textbf{bundle\_id}: This feature measures the similarity between questions. Questions sharing the same \texttt{bundle\_id} often share a common passage, picture, or listening material. Additionally, \texttt{bundle\_id}'s that are close in numerical value are also likely to indicate similar questions.
-    \item \textbf{tags}: This feature groups similar question concepts. A single question can be associated with multiple tags simultaneously. If two questions share the same tag, they are likely similar in content.
-\end{itemize}
-% \texttt{explanation\_id} is a similar feature to \texttt{bundle\_id} except that instead of measuring the similarity between the questions, it measures the similarity between the answers. Questions with the same \texttt{explanation\_id} have correct answers for similar reasons.
-
-Most of these data are not remotely ready to be used to train a model on. Almost none of the original features that came from this data set were directly used to make our model. For example, the \texttt{user\_answer} feature from KT1 only tells us if the user answers 'A', 'B', 'C', or 'D'. In order to measure the correctness of the user's answer, we have to compare the user's answer with the \texttt{correct\_answer} feature from the \texttt{questions.csv} file. The structure of this data set leaves much work to do to achieve meaningful results. 
-
-\texttt{elapsed\_time} has quite a large variance, and there seems to be a large gap of values missing in \texttt{bundle\_id} and \texttt{question\_id}. This information needs to be normalized in some way to be used effectively.
-
-Additionally, because the dataset is so large and it spans over hundreds of thousands of files, the overhead for simply reading and modifying the data is extremely computationally expensive. In fact, it was especially expensive when using the popular Python library called Pandas to load and modify the data.
 
 \section{Technical Approach}
 
@@ -159,82 +131,59 @@ TBD
 The \texttt{correct} value is our target variable, which details whether the student got the question correct or not with a 1 or a 0. Because our dataset did not explicitly provide this, we had to go to each interaction, check the student's answer, then compare it to the correct answer for that question listed in \texttt{questions.csv} and mark whether the student was correct. We obtained this value as part of our initial dataset aggregation in \texttt{prep\_data.ipynb} so that we could use this column to engineer most of our features that rely on checking if the student was correct on previous questions (streak and accuracy measurements).
 
 \vspace{1em}
-Yap about the model(s) here
 
+\begin{table}[t]
+\caption{Algorithms Implemented}
+\centering
+\begin{tabular}{l}
+\hline
+\textbf{Algorithm} \\ \hline
+Scholastic Gradient Descent Classifier (SGD Classifier) \\
+Logistic Regression Model \\
+Random Forest Classifier \\
+Extreme Gradient Boost Classifier (XGBoost Classifier) \\
+Voting Ensemble Classifier \\
+\hline
+\end{tabular}
+\label{tab:algorithms}
+\end{table}
 
-\section{RESULTS AND DISCUSSION}
+\section{Overview of the Algorithm Implementations}
 
-\subsection{Feature Engineering Impact}
+\subsection{\texttt{Logistic Regression Model}}
+The logistic regression algorithm (Scikit-Learn library) was implemented due to its computational efficiency with large datasets. The model served as a baseline, achieving approximately 71\%. The later inclusion of an SGD classifier was due to logistic regression failing to improve in accuracy with large or nonlinear datasets.
 
-Across all experiments, feature engineering had more impact on performance than
-model complexity. Normalizing skewed features such as \texttt{elapsed\_time} and
-\texttt{question\_acc} was essential. Raw values produced unstable distributions,
-while normalization reduced variance and improved generalization.
+\subsection{\texttt{Scholastic Gradient Descent Classifier (SGD)}}
+The SGD classifier improved as dataset size increased, because it updates after each sample instead of after the entire dataset. Accuracy tended to stagnate when using 4000 students, and performance was poor on small datasets ($<1000$).
 
-We also found that ID-based features (question ID and bundle ID) introduced noise.
-They encode ordering rather than meaningful structure, and ablation results confirmed
-they contributed little to accuracy.
+\subsection{\texttt{Random Forest Classifier}}
+The random forest classifier was chosen for its strong ability to learn nonlinear relationships. While effective, its computational cost became prohibitive for very large datasets. The strategy used to mitigate this is discussed in the Approach section.
 
-\subsection{Ablation Study}
+\subsection{\texttt{Extreme Gradient Boost Classifier (XGBoost)}}
+The XGBoost classifier provided a balance between strong nonlinear learning performance and computational efficiency—slightly better than random forest. Although not as accurate alone as random forest, it proved extremely valuable in the voting ensemble.
 
-To understand which features mattered most, we conducted a full ablation study.
-Key observations:
+\subsection{\texttt{Voting Ensemble Classifier}}
+The voting classifier was implemented to produce a more consistent model across different sample sizes. It provided the most stable accuracy changes as student sample sizes varied. Each constituent model was trained on the same dataset but used different algorithms. SGD received a weight of 1.3 due to having the smallest overfit. Random forest received a lower weight due to its tendency to overfit.
 
-\begin{itemize}
-    \item Baseline accuracy using only question accuracy was 65.3\%.
-    \item Using only \texttt{question\_acc} raised validation accuracy to 69\%.
-    \item Using only \texttt{elapsed\_time} dropped performance to 58\%.
-    \item Combining \texttt{question\_acc} and \texttt{elapsed\_time} gave 69.5\%.
-    \item Adding ID features slightly \textit{reduced} accuracy.
-    \item The final normalized model achieved 71.26\% validation accuracy.
-\end{itemize}
+\section{Model Approach}
+The goal was to design a model achieving at least 75\% accuracy while remaining computationally efficient. Due to large dataset size, challenges arose when algorithms either failed to capture sufficient patterns or were too computationally expensive (e.g., random forest hyperparameter tuning). To balance accuracy with compute cost, the dataset was sampled, enabling more models—such as random forest and XGBoost—to be trained without crashing. To avoid training bias, the dataset was shuffled upon loading to ensure a diverse sampling of outcomes.
 
-These results show that student performance is primarily influenced by question
-difficulty (captured by \texttt{question\_acc}) and response behavior (captured
-by elapsed time), while ID fields do not provide useful signal.
+\section{Issues of Overfitting}
+Training using only 2000 students led to overfitting, especially for random forest. This was not surprising given the shuffled dataset, which allowed models to easily learn the dominant patterns but occasionally missed patterns appearing less frequently in the full dataset.
 
-\subsection{Learning Curve Analysis}
+\section{Solutions for Overfitting}
+To ensure sufficient training data, a logistic regression model was first trained on the entire dataset to establish a reference performance. After testing with 4000-student samples, a 2000-student training sample was found to provide enough data to avoid overfitting (defined as a training–validation accuracy gap of less than 5\%). This approach performed well for logistic regression, SGD, and XGBoost, but not random forest. Hyperparameter tuning was therefore based on F1 score rather than accuracy, as it showed smaller train–validation discrepancies. Validation set size was increased from 200 to 1000, reducing the performance gap by about 5\%. The best models from tuning were then combined using a soft voting classifier—which uses class probabilities rather than majority voting—to produce a more reliable final model.
 
-We also plotted the learning curve for logistic regression. Training and validation
-accuracy stayed tightly grouped (approximately 71.35\% vs.\ 71.32\%), indicating:
+\section{Results and Discussion}
 
-\begin{itemize}
-    \item no overfitting,
-    \item the model is capacity-limited, and
-    \item adding more data will not meaningfully improve performance without
-          better features.
-\end{itemize}
-
-This supports the conclusion that improvements must come from feature engineering
-(tag embeddings, sequence-based features) rather than model scaling.
-
-\subsection{Why Splitting by Students Improved Accuracy}
-
-Early experiments used a row-wise random split, which leaked information across
-training and validation because multiple interactions from the same student appeared
-in both sets. Splitting by \emph{students} ensured no student appeared in both sets,
-eliminating leakage and producing more realistic accuracy estimates.
+Talk about results and discuss here
 
 
 
 
-\section{CONCLUSIONS}
+\section{Conclusion}
 
-This project demonstrates that simple, interpretable models can still provide
-meaningful insight into student learning behaviors. Our experiments show that
-feature engineering is more important than model complexity: normalizing skewed
-features and removing noisy identifiers resulted in significant improvements.
-
-Logistic regression revealed two key insights: (1) question difficulty is the
-strongest predictor of correctness, and (2) elapsed response time captures important
-behavioral patterns. Visualization played a crucial role in exposing skew, guiding
-normalization choices, and validating the decisions made in the ablation study.
-
-Future work will focus on sequence-based models (such as RNNs or Transformers),
-embeddings for question tags, and reinforcement learning approaches for adaptive
-student modeling. These directions may capture deeper temporal patterns that simple
-linear models cannot represent.
-
+Talk about our results, shortcomings, visualization, etc...
 
 
 
@@ -251,16 +200,10 @@ Technical Approach
 
 \section{Workload Distribution}
 
+Talk about how much we miss John
 
-Benjamin Belandres played a lead role in the project's inception, taking responsibility for the project idea, finding the dataset, normalization and training, and an amount of the feature engineering.
 
-Daniel Moon handled feature extraction, offered assistance with the \texttt{prep\_data.ipynb} notebook, and conducted the essential data visualization and analysis.
 
-Alex Ogle collaborated closely with Will on feature selection and designing the model. Additionally, Alex contributed detail by developing graphs of the data to support the chosen normalization method.
-
-Will Sessoms focused on feature extraction and was responsible for creating the \texttt{prep\_data.ipynb} notebook used for dataset consolidation. Will also worked specifically on developing our preprocessing pipeline.
-
-John Cordwell provided key guidance in the early stages, focusing on feature selection and the crucial preprocessing planning. Unfortunately, John dropped the class halfway through the semester, but his presence is missed and his contributions are felt.
 
 
 
