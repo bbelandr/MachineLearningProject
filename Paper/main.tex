@@ -20,6 +20,8 @@
 \usepackage{float}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{graphicx}
 
 % The following packages can be found on http:\\www.ctan.org
 %\usepackage{graphics} % for pdf, bitmapped graphics files
@@ -125,18 +127,22 @@ After that, we performed our split on the data, into our intermediary training a
 
 Our final version of the dataset incorporates all of our final features that we pass directly to the model. The following details each feature, how we derived it from our dataset, and how we chose to scale it:
 
-\subsection{\texttt{elapsed\_time}}
-TBD
+\subsection{\texttt{elapsed\_time\_z}}
+Our \texttt{elapsed\_time\_z} feature details the z-score of a student's time taken to answer a question relative to their previous time taken. To avoid temporal leakage, we compute this as a rolling value, smoothed with Bayesian smoothing using \texttt{$\alpha$=20}. This ensures that early interactions will not heavily skew the rolling data.
+
+Originally, we took all of the student's \texttt{elapsed\_time} values and applied standard scaling in the pipeline, but we opted to change this to be scaled to each individual student's performance, since all students will take a different amount of time to answer on average. For example, a student who answers very quickly may have a completely average \texttt{elapsed\_time} value compared to the rest of the students, but relative to them this is actually a long time. Scaling this feature to the individual student allows us to pick up these differences per-student, making this feature much more useful than the original \texttt{elapsed\_time}.
+
+We calculated this feature by iterating through each student's interaction in order of \texttt{timestamp} and simply recalculating their \texttt{elapsed\_time} z-score relative to all of their past attempts. Because this z-score is already scaling the data, we did not scale it in our pipeline
 
 \subsection{\texttt{bayes\_rolling\_acc}}
 Our \texttt{bayes\_rolling\_acc} feature is designed to show the current accuracy of the student up to that point, using Bayesian smoothing to account for early entries. To calculate this, we kept a rolling count of each student's accuracy and updated it after each interaction. To reduce extreme values from appearing early in the student's history we implemented Bayesian smoothing with \texttt{$\alpha$=20}, effectively starting us with 20 questions answered assumed at the average accuracy (.653523) across all students combined.
 
-The main purpose of this feature was to profile the students by capturing how well they have been performing so far. This allows the model to tell whether the student is above, below, or plain average without memorizing students, allowing for great generalization on the students in the validation set. We decided to scale \texttt{bayes\_rolling\_acc} with minmax scaling to preserve the small differences in student's performance levels.
+The main purpose of this feature was to profile the students by capturing how well they have been performing so far. This allows the model to tell whether the student is above, below, or plain average without memorizing students, allowing for great generalization on the students in the validation set. We decided not to scale \texttt{bayes\_rolling\_acc} because it is already bounded from 0-1 and scaled to the individual student.
 
 \subsection{\texttt{watched\_lecture}}
 Our \texttt{watched\_lecture} feature describes whether the student has watched a lecture relevant to the question in this interaction. We calculated this value by checking through each student's interaction log in the \texttt{KT3} folder, which includes each time the student interacted with a specific lecture. We then took this list for each student, used the \texttt{lectures.csv} file to get the tag associated with each lecture. Finally, we run through that student's question interaction log to check if the student has watched a lecture that matches any of the tags before answering the question, then mark this feature with the corresponding value (1 or 0).
 
-Due to the large number of tags (\textasciitilde200), with each lecture covering only a single tag, this feature is very sparse. Due to this, we didn't expect the feature to provide a large accuracy boost. Instead, it may help us predict better on some of the tricky scenarios where a student with a low accuracy answers a difficult question correctly. This feature does not need scaling because it is a boolean.
+Due to the large number of tags (\textasciitilde200), with each lecture covering only a single tag, this feature is very sparse. Due to this, we didn't expect the feature to provide a large accuracy boost. Instead, it may help us predict better on some of the tricky scenarios where a student with a low accuracy answers a difficult question correctly. This feature does not need scaling because it is essentially a boolean.
 
 \subsection{\texttt{student\_streak}}
 Our \texttt{student\_streak} feature simply records the current correct/incorrect streak of the students guesses, with no bound on the time captured. It accounts for both positive and negative streaks with the corresponding positive or negative value, meaning that an incorrect answer changes the streak to -1, rather than 0, starting their incorrect streak. We calculated this by running through each student's interactions in chronological order, keeping track of their current streak until it breaks, then starting a new streak. We decided to use standard scaling on this feature because it's main benefit comes from identifying large streaks, whether positive or negative, rather than needing to preserve the difference between differences in small streaks.
@@ -146,8 +152,8 @@ Our \texttt{forgetful\_ben\_score} feature details the accuracy of the model in 
 
 This feature can compliment the downsides of the \texttt{student\_streak} very well, especially if we just ended a streak. For example, if the student got 10 answers correct in a row and just previously missed a question to break the streak, the \texttt{student\_streak} is misleading while the \texttt{forgetful\_ben\_score} will still show a value of 3, which is still very high. In this scenario, we are still able to account for the student's recent streak even though it wasn't recognized by the \texttt{student\_streak} metric. Because there is a small range of possible values for this score, we chose to use minmax scaling to preserve small differences.
 
-\subsection{\texttt{question\_acc}}
-TBD
+\subsection{\texttt{bayes\_question\_acc}}
+Our \texttt{bayes\_question\_acc} feature works the same way for questions as our \texttt{bayes\_rolling\_acc} works for students, with a small caveat. Because the questions being answered are part of both datasets, we needed to calculate the rolling accuracy only on the training set answers to avoid leakage, then apply the most recently calculated value to each point in the validation set. To extract this, we sorted each set by \texttt{question\_id} then \texttt{timestamp}, iterated once over the training set to calculate the smoothed accuracy at each point, then finally iterated over the validation set, choosing the most recently calculated \texttt{bayes\_question\_acc} from the training set for each data point. With this strategy, we avoid both leaking data between sets and leaking data from the future. Because this feature is already bounded from 0 to 1 and scaled to the individual question, we did not scale it.
 
 \subsection{\texttt{correct}}
 The \texttt{correct} value is our target variable, which details whether the student got the question correct or not with a 1 or a 0. Because our dataset did not explicitly provide this, we had to go to each interaction, check the student's answer, then compare it to the correct answer for that question listed in \texttt{questions.csv} and mark whether the student was correct. We obtained this value as part of our initial dataset aggregation in \texttt{prep\_data.ipynb} so that we could use this column to engineer most of our features that rely on checking if the student was correct on previous questions (streak and accuracy measurements).
@@ -347,17 +353,35 @@ Overall, this project demonstrates that with carefully engineered features, prop
 
 \section{Code and Design}
 
-Technical Approach
+Our code is split into several files, each covering a different element of our full pipeline. The following details all relevant files in the order they would be run to create our functioning model:
 
+\subsection{\texttt{prep\_data.ipynb}}
 
+This is the first file of our pipeline. This file takes our original dataset, split across millions of individual files, and extracts the useful features into one combined data file, \texttt{combined\_dataset.csv}. In the latter half, this file splits the combined dataset into our training and validation splits. Each split receives its own parquet file, which acts as our intermediate dataset for creating our final training and validation datasets.
 
+\subsection{\texttt{feature\_eng.ipynb}}
 
+This file is our feature engineering notebook. It takes the data from our split intermediate parquets, and uses it to engineer our final features. Each cell is designed to be run on it's own, extracting on the necessary data, then saving the new feature back to our final dataset files. The final dataset files are also parquet files, and they contain all of the original information, as well as all of our engineered features. This final dataset is designed to be read in needing minimal changes before its ready to be used by the model.
+
+\subsection{\texttt{pipeline1.ipynb}}
+
+This file is our initial model, which we wrote our midterm report about. It uses the entire dataset, which is an excessive amount of data for our purposes. Hence, we made a second pipeline to improve upon this one.
+
+\subsection{\texttt{pipeline2.ipynb}}
+
+This is our second, and final, model pipeline. In this file, we randomly select a subset of the students to reduce the training computation (both memory and computing power) needed, which allowed us to explore many other types of models. For reference, we kept our original full-data logistic regression pipeline from \texttt{pipeline1.ipynb}, so that we could compare it to our new additions that use a largely reduced dataset. With this reduced dataset, we created an ensemble of several different models which ultimately surpassed our original logistic regression model, despite using just a fraction of the data.
 
 \section{Workload Distribution}
 
-Talk about how much we miss John
+Benjamin Belandres played a lead role in the project's inception, taking responsibility for the project idea, finding the dataset, normalization and training, and an amount of the feature engineering.
 
+Daniel Moon handled feature extraction, offered assistance with the \texttt{prep\_data.ipynb} notebook, and conducted the essential data visualization and analysis.
 
+Alex Ogle collaborated closely with Will on feature selection and designing the pipeline1 model. Additionally, Alex designed the pipeline2 ensemble model and contributed detail by developing graphs of the data to support the chosen normalization method.
+
+Will Sessoms focused on feature extraction and was responsible for creating the \texttt{prep\_data.ipynb} notebook used for dataset consolidation. Will largely contributed to the feature engineering, and worked with Alex on the pipeline1 file.
+
+John Cordwell provided key guidance in the early stages, focusing on feature selection and the crucial preprocessing planning. Unfortunately, John dropped the class halfway through the semester, but his presence is missed and his contributions are felt.
 
 
 
