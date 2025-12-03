@@ -14,7 +14,10 @@
 \overrideIEEEmargins
 % See the \addtolength command later in the file to balance the column lengths
 % on the last page of the document
-
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
@@ -224,6 +227,14 @@ We visualized each feature using a boxplot, histogram, and scatterplot (the \tex
 The distributions reveal substantial skew: \texttt{elapsed\_time} has heavy right tails due to long outliers, \texttt{question\_acc} is concentrated in roughly the 55--85\% range, and \texttt{student\_streak} has many short streaks and a few very long positive streaks.  
 Based on these plots we standardized \texttt{elapsed\_time} and \texttt{student\_streak}, and applied MinMax scaling to \texttt{bayes\_rolling\_acc}, \texttt{question\_acc}, and \texttt{forgetful\_ben\_score}.  
 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.75\linewidth]{histogram questionacc.png}
+    \caption{Distribution of question\_accuracy values across the training dataset. Most questions fall between 0.5 and 0.85 accuracy, indicating moderate difficulty and justifying normalization.}
+    \label{fig:question-acc-hist}
+\end{figure}
+
+
 \subsection{Model Comparison on Pipeline 2}
 
 We then compared four individual models and one ensemble, all sharing the same normalized feature set:
@@ -262,6 +273,28 @@ Logistic Regression (Full Pipeline 1)  & 0.730 & \textbf{0.729} \\
 \end{table}
 
 Several observations emerge from these results and the associated confusion matrices and classification reports:
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.65\linewidth]{log_reg_confusion_matrix.png}
+    \caption{Confusion matrix for the Logistic Regression model.  
+    The model achieved a training accuracy of 72.48\% and a validation accuracy of 69.63\%.  
+    True positives and true negatives dominate the matrix, indicating that Logistic Regression performs reliably as a baseline classifier on the reduced student-split dataset.}
+    \label{fig:logreg_confmat}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\textwidth]{random_forest_confusion_matrix.png}
+    \caption{Confusion matrix for the Random Forest Classifier. The model achieved a training accuracy of 78.44\% and a validation accuracy of 69.69\%.}
+    \label{fig:rf_confusion_matrix}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\textwidth]{xgboost_confusion_matrix.png}
+    \caption{XGBoost Confusion Matrix. Training accuracy = 72.09\%, Validation accuracy = 69.45\%.}
+    \label{fig:xgb_confusion}
+\end{figure}
 
 \begin{itemize}
     \item All models in Pipeline 2 beat the 65\% majority baseline by roughly 3--4 percentage points on validation, but the gains from extra model complexity are modest.  
