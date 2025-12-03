@@ -73,7 +73,7 @@ EdNet: Predicting Student Success
 
 \begin{abstract}
 
-The purpose of the model is to determine whether a person has answered a question correctly while taking a test. The model accomplishes this through features based off a students' answer streak and etc. The algorithm implemented is a combination of logistic regression, random forest classifier, and Extreme Gradient Boost (XGBoost) Classifier combined by voting classifier ensemble method. Accuracy would be balanced with computational efficiency by taking in only a certain number of students for training the models. Results found the each model to be approximately 70\% validation with each model with some models having more overfitting than others (range from 2\% to 9\% difference depending on model).
+The purpose of our model is to determine whether a student will get the answer to their next problem correct. The model accomplishes this through features based off a student's answer streak, the question difficulty, the time the student took, etc... The algorithm implemented is a combination of logistic regression, random forest classifier, and Extreme Gradient Boost (XGBoost) Classifier combined by voting classifier ensemble method. Accuracy would be balanced with computational efficiency by taking in only a certain number of students for training the models. Results found the each model to be approximately 71\% validation with each model with some models having more overfitting than others (range from 0\% to 2\% difference depending on model).
 
 \end{abstract}
 
@@ -111,7 +111,7 @@ Here are some relevant features that get utilized in our project that likely nee
 \end{itemize}
 % \texttt{explanation\_id} is a similar feature to \texttt{bundle\_id} except that instead of measuring the similarity between the questions, it measures the similarity between the answers. Questions with the same \texttt{explanation\_id} have correct answers for similar reasons.
 
-Most of these data are not remotely ready to be used to train a model on. Almost none of the original features that came from this data set were directly used to make our model. For example, the \texttt{user\_answer} feature from KT1 only tells us if the user answers 'A', 'B', 'C', or 'D'. In order to measure the correctness of the user's answer, we have to compare the user's answer with the \texttt{correct\_answer} feature from the \texttt{questions.csv} file. The structure of this data set leaves much work to do to achieve meaningful results. 
+Most of these data are not remotely ready to be used to train a model on. None of the original features that came from this data set were directly used to make our model. For example, the \texttt{user\_answer} feature from KT1 only tells us if the user answers 'A', 'B', 'C', or 'D'. In order to measure the correctness of the user's answer, we have to compare the user's answer with the \texttt{correct\_answer} feature from the \texttt{questions.csv} file. The structure of this data set leaves much work to do to achieve meaningful results. 
 
 \texttt{elapsed\_time} has quite a large variance, and there seems to be a large gap of values missing in \texttt{bundle\_id} and \texttt{question\_id}. This information needs to be normalized in some way to be used effectively.
 
@@ -128,7 +128,7 @@ After that, we performed our split on the data, into our intermediary training a
 Our final version of the dataset incorporates all of our final features that we pass directly to the model. The following details each feature, how we derived it from our dataset, and how we chose to scale it:
 
 \subsection{\texttt{elapsed\_time\_z}}
-Our \texttt{elapsed\_time\_z} feature details the z-score of a student's time taken to answer a question relative to their previous time taken. To avoid temporal leakage, we compute this as a rolling value, smoothed with Bayesian smoothing using \texttt{$\alpha$=20}. This ensures that early interactions will not heavily skew the rolling data.
+Our \texttt{elapsed\_time\_z} feature details the z-score of a student's time taken to answer a question relative to their time taken on all questions prior. To avoid temporal leakage, we compute this as a rolling value, smoothed with Bayesian smoothing using \texttt{$\alpha$=20}. This ensures that early interactions will not heavily skew the rolling data.
 
 Originally, we took all of the student's \texttt{elapsed\_time} values and applied standard scaling in the pipeline, but we opted to change this to be scaled to each individual student's performance, since all students will take a different amount of time to answer on average. For example, a student who answers very quickly may have a completely average \texttt{elapsed\_time} value compared to the rest of the students, but relative to them this is actually a long time. Scaling this feature to the individual student allows us to pick up these differences per-student, making this feature much more useful than the original \texttt{elapsed\_time}.
 
@@ -178,29 +178,29 @@ Voting Ensemble Classifier \\
 
 \section{Overview of the Algorithm Implementations}
 
-\subsection{\texttt{Logistic Regression Model}}
-The logistic regression algorithm (Scikit-Learn library) was implemented due to its computational efficiency with large datasets. The model served as a baseline, achieving approximately 71\%. The later inclusion of an SGD classifier was due to logistic regression failing to improve in accuracy with large or nonlinear datasets.
+\subsection{Logistic Regression Model}
+The logistic regression algorithm (Scikit-Learn library) was implemented due to its computational efficiency with large datasets. The model served as a baseline, achieving 71.40\%. The later inclusion of an SGD classifier was due to logistic regression failing to improve in accuracy with large or nonlinear datasets.
 
-\subsection{\texttt{Scholastic Gradient Descent Classifier (SGD)}}
+\subsection{Scholastic Gradient Descent Classifier (SGD)}
 The SGD classifier improved as dataset size increased, because it updates after each sample instead of after the entire dataset. Accuracy tended to stagnate when using 4000 students, and performance was poor on small datasets ($<1000$).
 
-\subsection{\texttt{Random Forest Classifier}}
-The random forest classifier was chosen for its strong ability to learn nonlinear relationships. While effective, its computational cost became prohibitive for very large datasets. The strategy used to mitigate this is discussed in the Approach section.
+\subsection{Random Forest Classifier}
+The random forest classifier was chosen for its strong ability to learn nonlinear relationships. While effective, its computational cost became prohibitive for very large datasets. The strategy used to mitigate this is discussed in the Model Approach section.
 
-\subsection{\texttt{Extreme Gradient Boost Classifier (XGBoost)}}
+\subsection{Extreme Gradient Boost Classifier (XGBoost)}
 The XGBoost classifier provided a balance between strong nonlinear learning performance and computational efficiency—slightly better than random forest. Although not as accurate alone as random forest, it proved extremely valuable in the voting ensemble.
 
-\subsection{\texttt{Voting Ensemble Classifier}}
+\subsection{Voting Ensemble Classifier}
 The voting classifier was implemented to produce a more consistent model across different sample sizes. It provided the most stable accuracy changes as student sample sizes varied. Each constituent model was trained on the same dataset but used different algorithms. SGD received a weight of 1.3 due to having the smallest overfit. Random forest received a lower weight due to its tendency to overfit.
 
 \section{Model Approach}
 The goal was to design a model achieving at least 75\% accuracy while remaining computationally efficient. Due to large dataset size, challenges arose when algorithms either failed to capture sufficient patterns or were too computationally expensive (e.g., random forest hyperparameter tuning). To balance accuracy with compute cost, the dataset was sampled, enabling more models—such as random forest and XGBoost—to be trained without crashing. To avoid training bias, the dataset was shuffled upon loading to ensure a diverse sampling of outcomes.
 
-\section{Issues of Overfitting}
-Training using only 2000 students led to overfitting, especially for random forest. This was not surprising given the shuffled dataset, which allowed models to easily learn the dominant patterns but occasionally missed patterns appearing less frequently in the full dataset.
+\subsection{Issues of Overfitting}
+Training using only 2000 students led to slight overfitting, especially for random forest. This was not surprising given the shuffled dataset, which allowed models to easily learn the dominant patterns but occasionally missed patterns appearing less frequently in the full dataset.
 
-\section{Solutions for Overfitting}
-To ensure sufficient training data, a logistic regression model was first trained on the entire dataset to establish a reference performance. After testing with 4000-student samples, a 2000-student training sample was found to provide enough data to avoid overfitting (defined as a training–validation accuracy gap of less than 5\%). This approach performed well for logistic regression, SGD, and XGBoost, but not random forest. Hyperparameter tuning was therefore based on F1 score rather than accuracy, as it showed smaller train–validation discrepancies. Validation set size was increased from 200 to 1000, reducing the performance gap by about 5\%. The best models from tuning were then combined using a soft voting classifier—which uses class probabilities rather than majority voting—to produce a more reliable final model.
+\subsection{Solutions for Overfitting}
+To ensure sufficient training data, a logistic regression model was first trained on the entire dataset to establish a reference performance. After testing with 4000-student samples in the training set, a 2000-student training sample was found to provide enough data to avoid overfitting (defined as a training–validation accuracy gap of less than 3\% by our standards). This approach performed well for Logistic Regression, SGD, and XGBoost, but not Random Forest. Hyperparameter tuning was therefore based on F1 score rather than accuracy, as it showed smaller train–validation discrepancies. Validation set size was increased from 200 to 1000, reducing the performance gap by about 5\%. The best models from tuning were then combined using a soft voting classifier—which uses class probabilities rather than majority voting—to produce a more reliable final model.
 
 \section{Results and Discussion}
 
@@ -209,25 +209,27 @@ To ensure sufficient training data, a logistic regression model was first traine
 We treated each question attempt as a binary classification example with target
 \(\texttt{correct} \in \{0,1\}\).  
 As a sanity check we computed a majority baseline by always predicting the most frequent class (``correct'').  
-This baseline achieved an overall accuracy of \(\mathbf{65.34\%}\); any useful model must do better than this.
+This baseline achieved an overall accuracy of \(\mathbf{65.33\%}\); any useful model must do better than this.
 
 \paragraph{Pipeline 1 (Full Logistic Baseline).}
 In the first pipeline we used a relatively small feature set:
 elapsed time on the item, \texttt{question\_id}, \texttt{bundle\_id}, and per–question accuracy (the fraction of previous students who answered that question correctly).  
 Numeric features were standardized (or MinMax–scaled for \texttt{question\_acc}), and a logistic regression model was trained and evaluated on a large train/validation split of the merged dataset.  
-This full logistic model achieved a training accuracy of \(\mathbf{73.03\%}\) and a validation accuracy of \(\mathbf{72.92\%}\), which is already a substantial improvement over the 65\% baseline and shows that these simple features contain meaningful signal about student performance.
+Later, we updated this pipeline with our final dataset including all of our engineered features, and this full logistic model achieved a training accuracy of \(\mathbf{71.40\%}\) and a validation accuracy of \(\mathbf{71.33\%}\), which is already a substantial improvement over the 65\% baseline and shows that even a simple model can still extract meaningful patterns from our data.
 
 \paragraph{Pipeline 2 (Sampled Students, Richer Features).}
 The second pipeline, which contains most of the notebook figures was designed to experiment with more sophisticated features and models while keeping computation manageable.  
-Instead of training on all \(784{,}000\) students, we sampled \(\approx 2000\) students for training and \(\approx 1000\) students for validation via a custom \texttt{read\_in\_data} function.  
+Instead of training on all \(784{,}000\) students, we randomly sampled 2000 students for training and 1000 students for validation via a custom \texttt{read\_in\_data} function.  
 This yielded roughly \(2.6\times 10^5\) interactions but preserved full interaction histories for those students.
 
 On top of the original features, we engineered several new ones:
 \begin{itemize}
-    \item \textbf{\texttt{question\_acc}}: the empirical accuracy of each question based on training data.
+    \item \textbf{\texttt{bayes\_question\_acc}}: the rolling accuracy of each question based on training data.
     \item \textbf{\texttt{bayes\_rolling\_acc}}: a smoothed rolling estimate of each student’s recent accuracy.
     \item \textbf{\texttt{forgetful\_ben\_score}}: a score designed to capture forgetting or decay effects over time.
     \item \textbf{\texttt{student\_streak}}: the length of the student’s current correct/incorrect streak (positive for correct, negative for incorrect).
+    \item \textbf{\texttt{elapsed\_time\_z}}: the rolling z-score for an individual student's time taken to answer.
+    \item \textbf{\texttt{watched\_lecture}}: details whether the student has watched a lecture relevant to the current question.
 \end{itemize}
 We visualized each feature using a boxplot, histogram, and scatterplot (the \texttt{get\_info} function).  
 The distributions reveal substantial skew: \texttt{elapsed\_time} has heavy right tails due to long outliers, \texttt{question\_acc} is concentrated in roughly the 55--85\% range, and \texttt{student\_streak} has many short streaks and a few very long positive streaks.  
@@ -260,20 +262,20 @@ Table~\ref{tab:accuracy} summarizes the validation accuracies for the sampled–
 \begin{table}[h]
 \centering
 \caption{Validation accuracy of different models.  
-Pipeline~2 results are based on \(\approx 2000\) training students and \(\approx 1000\) validation students, while the ``Full Logistic'' model is trained on the full train/validation splits.}
+Pipeline~2 results are based on 2000 training students and 1000 validation students, while the ``Full Logistic'' model is trained on the full train/validation splits.}
 \label{tab:accuracy}
 \begin{tabular}{lcc}
 \toprule
 \textbf{Model} & \textbf{Train Acc.} & \textbf{Val Acc.} \\
 \midrule
 Majority baseline (always ``correct'') & -- & 0.653 \\
-Logistic Regression (Pipeline 2)       & 0.724 & 0.696 \\
-Random Forest                          & 0.730 & 0.691 \\
-XGBoost                                & 0.721 & 0.695 \\
-SGD Classifier                         & 0.715 & 0.688 \\
-Voting Ensemble                        & 0.741 & 0.698 \\
+Logistic Regression (Pipeline 2)       & 0.706 & 0.715 \\
+Random Forest                          & 0.737 & 0.716 \\
+XGBoost                                & 0.706 & 0.713 \\
+SGD Classifier                         & 0.695 & 0.708 \\
+Voting Ensemble                        & 0.716 & 0.716 \\
 \midrule
-Logistic Regression (Full Pipeline 1)  & 0.730 & \textbf{0.729} \\
+Logistic Regression (Full Pipeline 1)  & 0.714 & \textbf{0.713} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -303,15 +305,15 @@ Several observations emerge from these results and the associated confusion matr
 \end{figure}
 
 \begin{itemize}
-    \item All models in Pipeline 2 beat the 65\% majority baseline by roughly 3--4 percentage points on validation, but the gains from extra model complexity are modest.  
-    The best ensemble reaches about \(\approx 69.8\%\) validation accuracy on the sampled students, which is only slightly better than the standalone logistic model in the same pipeline.
-    \item The full logistic regression trained on the complete train/validation splits performs best overall (\(\approx 72.9\%\) validation accuracy).  
-    This suggests that, for this feature set, simply giving the logistic model more data is more beneficial than stacking more sophisticated learners on a smaller subset.
+    \item All models in Pipeline 2 beat the 65\% majority baseline by roughly 5--6 percentage points on validation, but the gains from extra model complexity are modest.  
+    The best ensemble reaches about 71.64\% validation accuracy on the sampled students, which is only slightly better than the standalone logistic model in the same pipeline.
+    \item Even though it was trained on a tiny portion of the overall data, the Voting Classifier ensemble performs best overall with 71.64\% validation accuracy).  
+    This suggests that using a wide variety of models was effective in sensing many kinds of patterns in the data.
     \item The confusion matrices show that all models are much better at predicting \texttt{correct} (\(y=1\)) than \texttt{incorrect} (\(y=0\)).  
     For example, in the logistic regression results we see recall around 0.85--0.91 for class 1 but only 0.30--0.40 for class 0.  
     In practice, this means the system tends to be optimistic and frequently predicts that students will get questions right.  
     This is not ideal if the main goal is early failure detection.
-    \item The ROC curves provide a more nuanced view: AUC scores are roughly in the 0.70--0.72 range, with Random Forest and XGBoost slightly ahead of logistic regression and SGD.  
+    \item The ROC curves provide a more nuanced view: AUC scores are roughly in the 0.73--0.75 range, with Random Forest and XGBoost slightly ahead of logistic regression and SGD.  
     The ensemble’s ROC curve lies very close to the best individual curves, indicating that soft voting does not dramatically change the trade–off between true and false positive rates.
     \item The XGBoost cost history (training vs.\ validation log loss over boosting rounds) decreases smoothly without large divergence, suggesting limited overfitting on the sampled students.  
     However, the validation accuracy still saturates below the full logistic model’s performance, reinforcing the idea that data size is a major limiting factor.
@@ -323,13 +325,13 @@ A key question for us was whether the additional features in Pipeline~2 actually
 Overall, we found that:
 
 \begin{itemize}
-    \item \textbf{\texttt{question\_acc}} is the single most valuable engineered feature.  
-    Comparing models with and without this feature (not shown in the final notebook for brevity), we consistently observed a few percentage points of accuracy gain.  
+    \item \textbf{\texttt{bayes\_question\_acc}} is the single most valuable engineered feature.  
+    When we compared models with and without this feature, we consistently observed a few percentage points of accuracy gain.  
     Intuitively, the average difficulty of a question is a strong global signal.
     \item \textbf{Temporal and student–history features} such as \texttt{bayes\_rolling\_acc}, \texttt{forgetful\_ben\_score}, and \texttt{student\_streak} provide smaller but measurable improvements.  
     The distributions we plotted suggest that these features capture additional structure (e.g., long positive streaks of success), but their effect on validation accuracy is incremental rather than transformative.
     \item Adding more features and more complex models does \emph{not} automatically yield large gains.  
-    Despite a substantial amount of engineering and tuning, our best ensemble on the sampled pipeline improved accuracy by only about 4 percentage points over the baseline and still underperformed the simple logistic model trained on more data.
+    Despite a substantial amount of engineering and tuning, our best ensemble on the sampled pipeline improved accuracy by only 5.3\% over the baseline and only barely outperformed the simple logistic model trained on more data.
 \end{itemize}
 
 In short, the strongest driver of performance in our experiments was the combination of a good difficulty proxy (\texttt{question\_acc}) and lots of data for the logistic model, rather than the additional student–history features or ensemble complexity.  
@@ -337,13 +339,13 @@ In short, the strongest driver of performance in our experiments was the combina
 
 \section{CONCLUSION}
 
-This project set out to evaluate whether student performance on the EdNet-KT1 dataset could be modeled using simple, interpretable features derived from question difficulty and student interaction behavior. Our logistic regression baseline ultimately achieved a training accuracy of 73.03\% and a validation accuracy of 72.92\%, outperforming the majority-class baseline of 65.34\%. Although this gain appears modest, it demonstrates that meaningful predictive structure exists even when using a small number of engineered features.
+This project set out to evaluate whether student performance on the EdNet-KT1 dataset could be modeled using simple, interpretable features derived from question difficulty and student interaction behavior. Our ensemble ultimately achieved a training accuracy of 71.64\% and a validation accuracy of 71.64\%, outperforming the majority-class baseline of 65.33\%. Although this gain appears modest, it demonstrates that large datasets and complex models still struggle to predict human rationality.
 
-Several important observations emerged from the modeling process. First, feature engineering mattered far more than model complexity. Early attempts using raw identifiers such as question\_id and bundle\_id added noise without improving accuracy. By contrast, engineered features like question\_accuracy, rolling Bayesian accuracy, forgetful\_ben\_score, and student\_streak have captured interpretable behavioral patterns and consistently improved performance. This aligns with our visual analyses, where distribution plots revealed skewed and heavy-tailed features that benefited significantly from normalization.
+Several important observations emerged from the modeling process. First, feature engineering mattered far more than model complexity. Early attempts using raw identifiers such as question\_id and bundle\_id added noise without improving accuracy. By contrast, engineered features like bayes\_question\_accuracy, rolling Bayesian accuracy, forgetful\_ben\_score, and student\_streak have captured interpretable behavioral patterns and consistently improved performance. This aligns with our visual analyses, where distribution plots revealed skewed and heavy-tailed features that benefited significantly from normalization.
 
 Second, splitting the dataset by student rather than by row was essential. Row-level random splitting leaked future information from the same student into both sets, inflating scores and preventing generalization. Once we applied student-level stratified splitting, validation accuracy stabilized and produced more realistic estimates of real-world performance. This methodological improvement was one of the most important lessons learned throughout the project.
 
-Third, our logistic regression model provided interpretability benefits that guided future work. The model parameters highlighted which features had the strongest influence on predicting correctness, revealing two insights: (1) elapsed time and question accuracy were the dominant predictors, and (2) identifiers such as question\_id or bundle\_id were not inherently predictive. This informed our decisions when comparing more complex models, showing that additional features must capture meaningful behavior rather than structural metadata.
+Third, our logistic regression model provided interpretability benefits that guided future work. The model parameters highlighted which features had the strongest influence on predicting correctness, revealing two insights: (1) \texttt{elapsed\_time} and \texttt{question\_accuracy} were the dominant predictors, and (2) identifiers such as question\_id or bundle\_id were not inherently predictive. This informed our decisions when comparing more complex models, showing that additional features must capture meaningful behavior rather than structural metadata.
 
 Visualizations played an equally important role. Distribution plots exposed skew, outliers, missing values, and the need for normalization. Ablation studies demonstrated the incremental value of each engineered feature, clarifying which ones contributed meaningfully and which should be discarded. Learning curves confirmed that the model generalized well and exhibited neither underfitting nor overfitting. These graphical tools shaped our iterative improvements at every stage.
 
